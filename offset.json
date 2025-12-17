@@ -31,6 +31,12 @@
   },
   {
     "bus": "51-1",
+    "type": "평일",
+    "origin": "경동대",
+    "offset_min": 15
+  },
+  {
+    "bus": "51-1",
     "type": "토요일",
     "origin": "문막",
     "offset_min": 5
