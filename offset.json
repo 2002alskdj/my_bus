@@ -9,61 +9,61 @@
     "bus": "51",
     "type": "평일",
     "origin": "문막",
-    "offset_min": 0
+    "offset_min": 5
   },
   {
     "bus": "51",
     "type": "토요일",
     "origin": "문막",
-    "offset_min": 0
+    "offset_min": 5
   },
   {
     "bus": "51",
     "type": "일, 공휴일",
     "origin": "문막",
-    "offset_min": 0
+    "offset_min": 5
   },
   {
     "bus": "51-1",
     "type": "평일",
     "origin": "문막",
-    "offset_min": 0
+    "offset_min": 5
   },
   {
     "bus": "51-1",
     "type": "토요일",
     "origin": "문막",
-    "offset_min": 0
+    "offset_min": 5
   },
   {
     "bus": "51-1",
     "type": "일, 공휴일",
     "origin": "문막",
-    "offset_min": 0
+    "offset_min": 5
   },
   {
     "bus": "55",
     "type": "평일, 토요일",
     "origin": "부론",
-    "offset_min": 40
+    "offset_min": 35
   },
   {
     "bus": "55",
     "type": "일, 공휴일",
     "origin": "부론",
-    "offset_min": 40
+    "offset_min": 35
   },
   {
     "bus": "55-1",
     "type": "평일, 토요일",
     "origin": "부론",
-    "offset_min": 40
+    "offset_min": 35
   },
   {
     "bus": "55-1",
     "type": "일, 공휴일",
     "origin": "부론",
-    "offset_min": 40
+    "offset_min": 35
   },
   {
     "bus": "59",
