@@ -59,7 +59,7 @@ body {
   도착시간: 문막주공아파트 정류장 기준 <br>
   ※ 시간표와 교통상황에 따라 실제 도착과 차이가 날 수 있습니다.
 </p>
-  
+
 <div class="day-toggle">
   <button id="btn-auto"      onclick="setDayOverride('auto')">오늘 기준</button>
   <button id="btn-weekday"   onclick="setDayOverride('평일')">평일 보기</button>
@@ -135,7 +135,7 @@ function setDayOverride(v) {
   load(); // 다시 계산해서 화면 갱신
 }
 
-// 버스번호 기준으로 오늘 전체 도착 시각표 HTML 생성 (남은 시간 표시 없음)
+// 버스번호 기준으로 오늘 전체 도착 시각표 HTML 생성 (남은 시간 표시 없음, 출발/도착 함께)
 function buildFullScheduleHtml(busNo, dayType, rawSchedule, offsetData) {
   const rows = rawSchedule.filter(row =>
     row.bus === busNo && isTodayIncluded(row.type, dayType)
@@ -153,7 +153,8 @@ function buildFullScheduleHtml(busNo, dayType, rawSchedule, offsetData) {
       );
       const offset = off ? off.offset_min : 0;
       const arrive = base + offset;
-      lines.push(toTime(arrive));
+      const departStr = t.length === 4 ? `0${t}` : t; // 7:05 → 07:05 보정용
+      lines.push(`${departStr} 출발 → ${toTime(arrive)} 도착`);
     });
   });
 
@@ -175,13 +176,15 @@ async function load() {
     : `선택 요일: ${dayType} (오늘은 ${realDay}) · 기준시각 ${toTime(nowMin)}`;
   document.getElementById("today").innerText = title;
 
+  const GRACE_MIN = 3; // 도착 후 3분까지는 0분으로 남겨두기
+
   let result = [];
 
   rawSchedule.forEach(row => {
     if (!isTodayIncluded(row.type, dayType)) return;
 
     row.times.forEach(t => {
-      const base = toMin(t);
+      const base = toMin(t); // 종점 출발 시각
 
       const off = offsetData.find(o =>
         o.bus === row.bus &&
@@ -190,14 +193,19 @@ async function load() {
       );
 
       const offset = off ? off.offset_min : 0;
-      const arrive = base + offset;
+      const arrive = base + offset; // 정류장 도착 시각
 
-      if (arrive >= nowMin) {
+      // 도착 후 GRACE_MIN 분까지는 리스트에 남겨두기
+      if (arrive >= nowMin - GRACE_MIN) {
+        const remainRaw = arrive - nowMin;
+        const remain = Math.max(remainRaw, 0); // 0 미만은 0으로 고정
+
         result.push({
           bus: row.bus,
           origin: row.origin,
-          time: toTime(arrive),
-          remain: arrive - nowMin
+          departTime: toTime(base),   // 종점 출발 시각
+          arriveTime: toTime(arrive), // 정류장 도착 시각
+          remain: remain              // 정류장 도착까지 남은 분
         });
       }
     });
@@ -238,9 +246,9 @@ async function load() {
     box.innerHTML += `
       <div class="bus">
         <div class="time" onclick="toggleDetail('${id}')">
-          ${item.bus}번 · ${item.next.time} (${item.origin})
+          ${item.bus}번 · ${item.next.departTime} 출발 (${item.origin})
         </div>
-        <div class="soon">${item.next.remain}분 후 도착</div>
+        <div class="soon">${item.next.remain}분 후 정류장 도착</div>
         <div id="${id}" class="detail">
           ${detailHtml}
         </div>
@@ -255,8 +263,3 @@ load();
 </script>
 </body>
 </html>
-
-
-
-
-
