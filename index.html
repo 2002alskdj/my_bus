@@ -31,11 +31,37 @@ body {
   color: #555;
   line-height: 1.4;
 }
+
+/* 요일 토글 버튼 */
+.day-toggle {
+  margin-bottom: 12px;
+}
+.day-toggle button {
+  border: none;
+  padding: 6px 10px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: #e0e3e7;
+  cursor: pointer;
+  font-size: 13px;
+}
+.day-toggle button.active {
+  background: #1e88e5;
+  color: #fff;
+}
 </style>
 </head>
 
 <body>
 <h2 id="today"></h2>
+
+<div class="day-toggle">
+  <button id="btn-auto"      onclick="setDayOverride('auto')">오늘 기준</button>
+  <button id="btn-weekday"   onclick="setDayOverride('평일')">평일 보기</button>
+  <button id="btn-saturday"  onclick="setDayOverride('토요일')">토요일 보기</button>
+  <button id="btn-holiday"   onclick="setDayOverride('일, 공휴일')">일·공휴일 보기</button>
+</div>
+
 <div id="busList"></div>
 
 <script>
@@ -47,8 +73,8 @@ function toggleDetail(id) {
     (el.style.display === "none" || el.style.display === "") ? "block" : "none";
 }
 
-// 요일 판별
-function getDayType() {
+// 실제 오늘 요일
+function getDayTypeFromDate() {
   const d = new Date().getDay();
   if (d === 0) return "일, 공휴일";
   if (d === 6) return "토요일";
@@ -73,27 +99,60 @@ function toTime(m) {
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 }
 
+// 요일 오버라이드 상태: "auto" | "평일" | "토요일" | "일, 공휴일"
+let dayOverride = "auto";
+
+function getCurrentDayType() {
+  if (dayOverride === "auto") return getDayTypeFromDate();
+  return dayOverride;
+}
+
+// 버튼 active 상태 갱신
+function updateDayButtons() {
+  const map = {
+    auto: 'btn-auto',
+    '평일': 'btn-weekday',
+    '토요일': 'btn-saturday',
+    '일, 공휴일': 'btn-holiday'
+  };
+  Object.values(map).forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  const activeId = map[dayOverride];
+  const activeBtn = document.getElementById(activeId);
+  if (activeBtn) activeBtn.classList.add('active');
+}
+
+function setDayOverride(v) {
+  dayOverride = v;
+  updateDayButtons();
+  load(); // 다시 계산해서 화면 갱신
+}
+
 async function load() {
   const rawSchedule = await fetch("./raw_schedule.json").then(r => r.json());
   const offsetData = await fetch("./offset.json").then(r => r.json());
 
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const dayType = getDayType();
+  const dayType = getCurrentDayType();
 
-  document.getElementById("today").innerText =
-    `오늘 (${dayType}) · 현재 ${toTime(nowMin)}`;
+  // 상단 타이틀: 실제 오늘 요일 + 현재 선택 요일 정보
+  const realDay = getDayTypeFromDate();
+  const title = (dayOverride === 'auto')
+    ? `오늘 (${realDay}) · 현재 ${toTime(nowMin)}`
+    : `선택 요일: ${dayType} (오늘은 ${realDay}) · 기준시각 ${toTime(nowMin)}`;
+  document.getElementById("today").innerText = title;
 
   let result = [];
 
   rawSchedule.forEach(row => {
-    // 오늘 요일에 해당하지 않는 노선은 스킵
     if (!isTodayIncluded(row.type, dayType)) return;
 
     row.times.forEach(t => {
       const base = toMin(t);
 
-      // 오늘 요일에 해당하는 offset 찾기
       const off = offsetData.find(o =>
         o.bus === row.bus &&
         o.origin === row.origin &&
@@ -124,7 +183,6 @@ async function load() {
     byBus[r.bus].push(r);
   });
 
-  // 각 버스마다 가장 가까운 1개 + 전체 리스트 구조 만들기
   const mainList = Object.keys(byBus).map(busNo => {
     const times = byBus[busNo];
     return {
@@ -138,7 +196,6 @@ async function load() {
   const box = document.getElementById("busList");
   box.innerHTML = "";
 
-  // 화면에 그리기
   mainList.forEach(item => {
     const id = `bus-${item.bus}`;
     const detailHtml = item.all
@@ -159,6 +216,8 @@ async function load() {
   });
 }
 
+// 처음 로딩 시 버튼 상태 세팅 후 데이터 로드
+updateDayButtons();
 load();
 </script>
 </body>
