@@ -49,6 +49,20 @@ body {
   background: #1e88e5;
   color: #fff;
 }
+
+/* <= 480px 화면에서만 적용 */
+@media (max-width: 480px) {
+  body {
+    padding: 12px;
+    font-size: 15px;
+  }
+  .bus {
+    padding: 14px;
+  }
+  h2#today {
+    font-size: 18px;
+  }
+}
 </style>
 </head>
 
@@ -303,5 +317,7 @@ load();
 </script>
 </body>
 </html>
+
+
 
 
