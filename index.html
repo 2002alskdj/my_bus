@@ -47,28 +47,35 @@ function toggleDetail(id) {
     (el.style.display === "none" || el.style.display === "") ? "block" : "none";
 }
 
+// 요일 판별
+function getDayType() {
+  const d = new Date().getDay();
+  if (d === 0) return "일, 공휴일";
+  if (d === 6) return "토요일";
+  return "평일";
+}
+
+// "평일, 토요일" 같은 문자열에 오늘 요일이 포함되는지 확인
+function isTodayIncluded(type, dayType) {
+  const t = String(type || "").trim();
+  if (t === "전체") return true;
+  return t.split(",").map(s => s.trim()).includes(dayType);
+}
+
+// 시간 문자열 → 분
+function toMin(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+// 분 → HH:MM
+function toTime(m) {
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
 async function load() {
   const rawSchedule = await fetch("./raw_schedule.json").then(r => r.json());
   const offsetData = await fetch("./offset.json").then(r => r.json());
-
-  // 요일 판별
-  function getDayType() {
-    const d = new Date().getDay();
-    if (d === 0) return "일, 공휴일";
-    if (d === 6) return "토요일";
-    return "평일";
-  }
-
-  // 시간 문자열 → 분
-  function toMin(t) {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  }
-
-  // 분 → HH:MM
-  function toTime(m) {
-    return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-  }
 
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -80,24 +87,22 @@ async function load() {
   let result = [];
 
   rawSchedule.forEach(row => {
-    const rowType = String(row.type || "").trim();
-    const todayType = String(dayType || "").trim();
-
-    // "전체 " 같이 공백 있는 경우 대비
-    if (rowType !== todayType && rowType !== "전체") return;
+    // 오늘 요일에 해당하지 않는 노선은 스킵
+    if (!isTodayIncluded(row.type, dayType)) return;
 
     row.times.forEach(t => {
       const base = toMin(t);
 
-      const offset =
-        (offsetData.find(o =>
-          o.bus === row.bus &&
-          o.origin === row.origin &&
-          (String(o.type || "").trim() === rowType ||
-           String(o.type || "").trim() === "전체")
-        )?.offset_min) || 0;
+      // 오늘 요일에 해당하는 offset 찾기
+      const off = offsetData.find(o =>
+        o.bus === row.bus &&
+        o.origin === row.origin &&
+        isTodayIncluded(o.type, dayType)
+      );
 
+      const offset = off ? off.offset_min : 0;
       const arrive = base + offset;
+
       if (arrive >= nowMin) {
         result.push({
           bus: row.bus,
