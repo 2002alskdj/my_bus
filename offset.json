@@ -3,7 +3,7 @@
     "bus": "50",
     "type": "전체 ",
     "origin": "문막공단",
-    "offset_min": 15
+    "offset_min": 20
   },
   {
     "bus": "51",
@@ -45,30 +45,30 @@
     "bus": "55",
     "type": "평일, 토요일",
     "origin": "부론",
-    "offset_min": 30
+    "offset_min": 35
   },
   {
     "bus": "55",
     "type": "일, 공휴일",
     "origin": "부론",
-    "offset_min": 30
+    "offset_min": 35
   },
   {
     "bus": "55-1",
     "type": "평일, 토요일",
     "origin": "부론",
-    "offset_min": 30
+    "offset_min": 35
   },
   {
     "bus": "55-1",
     "type": "일, 공휴일",
     "origin": "부론",
-    "offset_min": 30
+    "offset_min": 35
   },
   {
     "bus": "59",
     "type": "평일 ",
     "origin": "경동대",
-    "offset_min": 15
+    "offset_min": 20
   }
 ]
