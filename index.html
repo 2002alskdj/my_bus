@@ -130,6 +130,32 @@ function setDayOverride(v) {
   load(); // 다시 계산해서 화면 갱신
 }
 
+// 버스번호 기준으로 오늘 전체 도착 시각표 HTML 생성 (남은 시간 표시 없음)
+function buildFullScheduleHtml(busNo, dayType, rawSchedule, offsetData) {
+  const rows = rawSchedule.filter(row =>
+    row.bus === busNo && isTodayIncluded(row.type, dayType)
+  );
+
+  const lines = [];
+
+  rows.forEach(row => {
+    row.times.forEach(t => {
+      const base = toMin(t);
+      const off = offsetData.find(o =>
+        o.bus === row.bus &&
+        o.origin === row.origin &&
+        isTodayIncluded(o.type, dayType)
+      );
+      const offset = off ? off.offset_min : 0;
+      const arrive = base + offset;
+      lines.push(toTime(arrive));
+    });
+  });
+
+  lines.sort(); // 시간순 정렬
+  return lines.join("<br>");
+}
+
 async function load() {
   const rawSchedule = await fetch("./raw_schedule.json").then(r => r.json());
   const offsetData = await fetch("./offset.json").then(r => r.json());
@@ -138,7 +164,6 @@ async function load() {
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const dayType = getCurrentDayType();
 
-  // 상단 타이틀: 실제 오늘 요일 + 현재 선택 요일 정보
   const realDay = getDayTypeFromDate();
   const title = (dayOverride === 'auto')
     ? `오늘 (${realDay}) · 현재 ${toTime(nowMin)}`
@@ -198,9 +223,12 @@ async function load() {
 
   mainList.forEach(item => {
     const id = `bus-${item.bus}`;
-    const detailHtml = item.all
-      .map(t => `${t.time} (${t.remain}분 후)`)
-      .join("<br>");
+    const detailHtml = buildFullScheduleHtml(
+      item.bus,
+      dayType,
+      rawSchedule,
+      offsetData
+    );
 
     box.innerHTML += `
       <div class="bus">
