@@ -90,7 +90,16 @@ function getDayTypeFromDate() {
 function isTodayIncluded(type, dayType) {
   const t = String(type || "").trim();
   if (t === "전체") return true;
-  return t.split(",").map(s => s.trim()).includes(dayType);
+
+  const tokens = t.split(",").map(s => s.trim()); // 예: ["일", "공휴일"]
+
+  // "일·공휴일 보기"일 때는 둘 중 하나라도 포함되면 true
+  if (dayType === "일, 공휴일") {
+    return tokens.includes("일") || tokens.includes("공휴일");
+  }
+
+  // 그 외(평일, 토요일)는 기존처럼
+  return tokens.includes(dayType);
 }
 
 // 시간 문자열 → 분
@@ -294,3 +303,4 @@ load();
 </script>
 </body>
 </html>
+
