@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>집 정류장 버스</title>
+<style>
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f6f7;
+  padding: 20px;
+}
+.bus {
+  background: #ffffff;
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.time {
+  font-weight: bold;
+  cursor: pointer;
+}
+.soon {
+  color: #1e88e5;
+  margin-top: 4px;
+}
+.detail {
+  display: none;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+}
+</style>
+</head>
+
+<body>
+<h2 id="today"></h2>
+<div id="busList"></div>
+
+<script>
+// 상세 시간표 토글 함수
+function toggleDetail(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display =
+    (el.style.display === "none" || el.style.display === "") ? "block" : "none";
+}
+
+async function load() {
+  const rawSchedule = await fetch("./raw_schedule.json").then(r => r.json());
+  const offsetData = await fetch("./offset.json").then(r => r.json());
+
+  // 요일 판별
+  function getDayType() {
+    const d = new Date().getDay();
+    if (d === 0) return "일, 공휴일";
+    if (d === 6) return "토요일";
+    return "평일";
+  }
+
+  // 시간 문자열 → 분
+  function toMin(t) {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  // 분 → HH:MM
+  function toTime(m) {
+    return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  }
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const dayType = getDayType();
+
+  document.getElementById("today").innerText =
+    `오늘 (${dayType}) · 현재 ${toTime(nowMin)}`;
+
+  let result = [];
+
+  rawSchedule.forEach(row => {
+    const rowType = String(row.type || "").trim();
+    const todayType = String(dayType || "").trim();
+
+    // "전체 " 같이 공백 있는 경우 대비
+    if (rowType !== todayType && rowType !== "전체") return;
+
+    row.times.forEach(t => {
+      const base = toMin(t);
+
+      const offset =
+        (offsetData.find(o =>
+          o.bus === row.bus &&
+          o.origin === row.origin &&
+          (String(o.type || "").trim() === rowType ||
+           String(o.type || "").trim() === "전체")
+        )?.offset_min) || 0;
+
+      const arrive = base + offset;
+      if (arrive >= nowMin) {
+        result.push({
+          bus: row.bus,
+          origin: row.origin,
+          time: toTime(arrive),
+          remain: arrive - nowMin
+        });
+      }
+    });
+  });
+
+  // 남은 시간 기준 정렬
+  result.sort((a, b) => a.remain - b.remain);
+
+  // 버스 번호별로 그룹화
+  const byBus = {};
+  result.forEach(r => {
+    if (!byBus[r.bus]) byBus[r.bus] = [];
+    byBus[r.bus].push(r);
+  });
+
+  // 각 버스마다 가장 가까운 1개 + 전체 리스트 구조 만들기
+  const mainList = Object.keys(byBus).map(busNo => {
+    const times = byBus[busNo];
+    return {
+      bus: busNo,
+      origin: times[0].origin,
+      next: times[0],
+      all: times
+    };
+  });
+
+  const box = document.getElementById("busList");
+  box.innerHTML = "";
+
+  // 화면에 그리기
+  mainList.forEach(item => {
+    const id = `bus-${item.bus}`;
+    const detailHtml = item.all
+      .map(t => `${t.time} (${t.remain}분 후)`)
+      .join("<br>");
+
+    box.innerHTML += `
+      <div class="bus">
+        <div class="time" onclick="toggleDetail('${id}')">
+          ${item.bus}번 · ${item.next.time} (${item.origin})
+        </div>
+        <div class="soon">${item.next.remain}분 후 도착</div>
+        <div id="${id}" class="detail">
+          ${detailHtml}
+        </div>
+      </div>
+    `;
+  });
+}
+
+load();
+</script>
+</body>
+</html>
